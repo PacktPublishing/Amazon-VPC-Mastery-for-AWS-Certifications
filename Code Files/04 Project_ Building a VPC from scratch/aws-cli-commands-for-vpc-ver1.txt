@@ -1,0 +1,52 @@
+1. Create a VPC with 192.168.0.0/16 CIDR 
+	aws ec2 create-vpc --cidr-block 192.168.0.0/16
+
+2. Create two subnets:
+	aws ec2 create-subnet --vpc-id vpc-[ID] --cidr-block 192.168.0.0/24
+	aws ec2 create-subnet --vpc-id vpc-[ID] --cidr-block 192.168.1.0/24
+
+3. Create a internet gateway
+	aws ec2 create-internet-gateway
+
+4. Attach the Internet gateway to your VPC.
+	aws ec2 attach-internet-gateway --vpc-id vpc-[ID] --internet-gateway-id igw-[ID]
+	
+5. Create a custom route table for your VPC
+	aws ec2 create-route-table --vpc-id vpc-[ID]
+
+6. Create a route in the route table that points all traffic (0.0.0.0/0) to the Internet gateway.
+	aws ec2 create-route --route-table-id rtb-[ID] --destination-cidr-block 0.0.0.0/0 --gateway-id igw-[ID]
+
+7. Display Routes:
+	aws ec2 describe-route-tables --route-table-id rtb-[ID]
+
+8. Associate the RT to a subnet in your VPC
+	aws ec2 describe-subnets --filters "Name=vpc-id,Values=vpc-[ID]" --query 'Subnets[*].{ID:SubnetId,CIDR:CidrBlock}'
+	
+	aws ec2 associate-route-table  --subnet-id subnet-[ID] --route-table-id rtb-[ID]
+
+9. Enable Public IP Assignment
+	aws ec2 modify-subnet-attribute --subnet-id subnet-[ID] --map-public-ip-on-launch
+
+10. Create  Key-pair
+	aws ec2 create-key-pair --key-name mykey1 --query 'KeyMaterial' --output text > mykey1.pem
+
+11. Create a security group in your VPC, and add a rule that allows SSH access from anywhere.
+	aws ec2 create-security-group --group-name SG_SSHAccess --description "SSH access" --vpc-id vpc-[ID]
+	
+	aws ec2 authorize-security-group-ingress --group-id sg-[ID] --protocol tcp --port 22 --cidr 0.0.0.0/0
+
+12. Launch EC2 instance: (AMI ID: ami-00c03f7f7f2ec15c3)
+	aws ec2 run-instances --image-id ami-00c03f7f7f2ec15c3 --count 1 --instance-type t2.micro --key-name mykey1 --security-group-ids sg-[ID] --subnet-id subnet-[ID]
+	
+13. Give few mins... and run
+	aws ec2 describe-instances --instance-id i-[ID]
+
+14. From Linux/OS: (sample commands)
+	chmod 400 mykey1.pem
+	ssh -i "mykey1.pem" ec2-user@[PUBLIC IP ADDRESS]
+
+15. Using Putty on Windows to SSH
+	Convert .pem to .ppk
+	Use Putty to Connect.
+
